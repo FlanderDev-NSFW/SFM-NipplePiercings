@@ -113,6 +113,10 @@ them) from front, right, left, back, top or below at the given distance (SfmKit 
     inside out) until the exporter turned them.
   - not checked: other nipple sizes or heights, map changes, clothes over the piercings, the sparkle on screen, the jingle by ear.
 
+- 0.2.1 (2026-10-25): the game keeps the piercing points (`PiasPosition`) inactive for a while after a load; the piercings
+  waited for them ("L: off") - they now only need the breast bones active (they follow the breast either way). After a load:
+  crystals shown while both points read inactive.
+
 ## Known limits
 
 - **Clothes are not taken into account:** under a top or the coat the piercings are drawn through the clothes.

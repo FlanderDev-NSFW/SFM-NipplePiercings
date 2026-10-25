@@ -219,7 +219,9 @@ namespace NipplePiercings
                 var colliders = on ? Colliders() : null;
                 foreach (var s in _sides)
                 {
-                    bool show = on && s.Anchor != null && s.Anchor.gameObject.activeInHierarchy && Wear(s);
+                    // The breast bone, not the piercing point: the game keeps PiasPosition inactive for a while after a load
+                    // (it still follows the breast) [observed 2026-10-25].
+                    bool show = on && s.Anchor != null && s.Breast != null && s.Breast.gameObject.activeInHierarchy && Wear(s);
                     s.Rig?.SetVisible(show);
                     if (!show) { sb.Append(s.Name).Append(": off; "); continue; }
                     Place(s, colliders, sb);
@@ -374,7 +376,7 @@ namespace NipplePiercings
         {
             Side l = _sides[0], r = _sides[1];
             bool want = on && Plugin.Chain.Value && l.Model != null && r.Model != null && l.Rig != null && r.Rig != null
-                        && l.Anchor.gameObject.activeInHierarchy && r.Anchor.gameObject.activeInHierarchy;
+                        && l.Breast.gameObject.activeInHierarchy && r.Breast.gameObject.activeInHierarchy;
             var link = Set.Get("link");
             if (!want || link == null)
             {
