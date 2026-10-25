@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="$(RepoRoot)build\SfmMod.props" />
+
+  <PropertyGroup>
+    <AssemblyName>NipplePiercings</AssemblyName>
+    <RootNamespace>NipplePiercings</RootNamespace>
+    <Version>0.2.0</Version>
+    <Description>NipplePiercings - crystal pendants on both nipples, swinging with her (SecretFlasherManaka, BepInEx IL2CPP)</Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="assets\piercings.npd" LogicalName="NipplePiercings.assets.piercings.npd" />
+  </ItemGroup>
+
+  <!-- Compile the shared SfmKit sources into this DLL (remove this line if you do not use it). -->
+  <Import Project="$(RepoRoot)build\SfmKit.props" />
+  <Import Project="$(RepoRoot)build\SfmMod.targets" />
+</Project>
