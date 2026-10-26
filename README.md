@@ -17,8 +17,9 @@ use RestraintHub.
 - **Anchors:** the game's own nipple-piercing points, the two `ChikubiPiasController` objects (`PiasPosition` under `Breast_L`,
   `PiasPositoin` under `Breast_R`). They follow the nipples with the breasts' jiggle and the nipple size; their frame is +z out of
   the nipple, +y up, +x her right. The point lies inside the nipple, so the piercings are placed from the **nipple's tip**, found
-  on her body mesh: of the skin within 4 cm of the point, the vertex furthest out along +z (`Logic/NippleApex.cs`), re-read from a
-  bake every 2 s and kept in the point's frame in between.
+  on her body mesh: of the skin within 1.2 x the point's scale (2.7 cm on the first save) of the point and near its axis, the
+  vertex furthest out along +z (`Logic/NippleApex.cs`), searched again in a bake every 2 s and kept in the point's frame in
+  between.
 - **Kinds** (from the model file): studs and the crystal pendant sit on the tip, the ball half pressed in (`ForwardCm` moves
   them); barbells and rings go through the nipple `DepthCm` behind the tip. Studs and pendants are sized to her height (`Size`;
   the crystal pendant is 6.5 cm long at height 1, 8.5 cm on the first save); what goes through the nipple is sized to the nipple -
@@ -116,6 +117,12 @@ them) from front, right, left, back, top or below at the given distance (SfmKit 
 - 0.2.1 (2026-10-25): the game keeps the piercing points (`PiasPosition`) inactive for a while after a load; the piercings
   waited for them ("L: off") - they now only need the breast bones active (they follow the breast either way). After a load:
   crystals shown while both points read inactive.
+
+- 0.2.2 (2026-10-26, user report: the left piercing off to the side): the tip vertex was searched once (within 4 cm) and kept;
+  that session the search ran with something of hers in front of the left breast and took vertex 17623, 3.7 cm from the
+  point, for good (log). Now searched at every bake, nearer the point and its axis (test: a "hand" 3 cm out and 2.5 cm aside
+  wins with 4 cm, the tip wins now). In game: tips 18190 / 17849 (1.4 / 1.2 cm), unchanged for 10 s with her coat held open
+  (hands in front of the chest); both crystals on the tips (screenshot).
 
 ## Known limits
 

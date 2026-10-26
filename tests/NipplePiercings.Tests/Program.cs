@@ -184,6 +184,14 @@ namespace NipplePiercings.Tests
             int k = NippleApex.Find(pts, anchor, Vector3.UnitZ, 0.04f);
             Check(k == 400, "apex: the tip, not the anchor's height or a far point (" + k + ")");
             Check(NippleApex.Find(pts, new Vector3(5f, 0, 0), Vector3.UnitZ, 0.04f) == -1, "apex: nothing near -> -1");
+            // A hand in front of the breast, 3 cm out and 2.5 cm aside of the nipple: within the old 4 cm it won.
+            pts.Add(new Vector3(0.025f, 0.004f, 0.134f));
+            float reach = NippleApex.Radius(2.2385f);
+            Check(reach > 0.025f && reach < 0.03f, "apex: radius 1.2 x the point's scale, 2.7 cm on the first save (" + reach + ")");
+            Check(NippleApex.Find(pts, anchor, Vector3.UnitZ, 0.04f) == 402, "apex (control): with 4 cm the hand wins");
+            Check(NippleApex.Find(pts, anchor, Vector3.UnitZ, reach) == 400, "apex: with the radius and the axis limit the tip wins over the hand");
+            pts.Add(new Vector3(0f, 0.004f, 0.128f)); // something right on the axis 2.4 cm out
+            Check(NippleApex.Find(pts, anchor, Vector3.UnitZ, reach) == 403, "apex: on the axis within reach it still counts (searched again each bake)");
         }
 
         // A 1 m chain: stud 0.1 m, four links 0.1 m, a 0.5 m heavy tip, hanging along -y in the nipple frame.

@@ -145,8 +145,9 @@ namespace NipplePiercings
         /// The nipples' tips from her drawn body mesh, kept in each anchor's frame (so they follow the jiggle between bakes; a bake
         /// every <see cref="BakeInterval"/> s picks up nipple shape changes). The game's piercing point lies inside the nipple, and
         /// a fixed offset in front of it left a stud above the tip [observed 2026-10-25]. Bake to world needs the body's lossy
-        /// scale (api-notes "Bake to world"). The tip vertex is searched once (within 4 cm, furthest along the nipple's +z), then
-        /// only that vertex is read.
+        /// scale (api-notes "Bake to world"). The tip is searched at every bake (<see cref="NippleApex"/>: near the point and its
+        /// axis, furthest along +z): kept from one search, a hand in front of the breast at that moment left the left piercing
+        /// 3.7 cm off for the whole session [observed 2026-10-26].
         /// </summary>
         [HideFromIl2Cpp]
         private void BakeApexes()
@@ -158,24 +159,18 @@ namespace NipplePiercings
             Transform t = _body.transform;
             Vector3 pos = t.position, ls = t.lossyScale;
             Quaternion rot = t.rotation;
-            NVector3[] world = null;
+            var world = new NVector3[verts.Length];
+            for (int i = 0; i < verts.Length; i++) world[i] = PendantRig.N(pos + rot * Vector3.Scale(ls, verts[i]));
             foreach (var s in _sides)
             {
                 if (s.Anchor == null) continue;
-                if (s.ApexVertex < 0 || s.ApexVertex >= verts.Length)
-                {
-                    if (world == null)
-                    {
-                        world = new NVector3[verts.Length];
-                        for (int i = 0; i < verts.Length; i++) world[i] = PendantRig.N(pos + rot * Vector3.Scale(ls, verts[i]));
-                    }
-                    s.ApexVertex = NippleApex.Find(world, PendantRig.N(s.Anchor.position), PendantRig.N(s.Anchor.forward), 0.04f);
-                    if (s.ApexVertex < 0) { s.HasApex = false; continue; }
-                    Plugin.Logger.LogInfo("[SFM-ACCEPT] apex: " + s.Name + " nipple tip is vertex " + s.ApexVertex + ", " +
-                                          Cm(Vector3.Distance(PendantRig.U(world[s.ApexVertex]), s.Anchor.position)) + " cm from the piercing point");
-                }
-                Vector3 apex = pos + rot * Vector3.Scale(ls, verts[s.ApexVertex]);
-                s.ApexLocal = s.Anchor.InverseTransformPoint(apex);
+                int found = NippleApex.Find(world, PendantRig.N(s.Anchor.position), PendantRig.N(s.Anchor.forward), NippleApex.Radius(s.Anchor.lossyScale.z));
+                if (found < 0) { s.HasApex = false; continue; }  // nothing near (the point at an odd place): placed on the point
+                if (found != s.ApexVertex)
+                    Plugin.Logger.LogInfo("[SFM-ACCEPT] apex: " + s.Name + " nipple tip is vertex " + found + ", " +
+                                          Cm(Vector3.Distance(PendantRig.U(world[found]), s.Anchor.position)) + " cm from the piercing point");
+                s.ApexVertex = found;
+                s.ApexLocal = s.Anchor.InverseTransformPoint(PendantRig.U(world[found]));
                 s.HasApex = true;
             }
         }
