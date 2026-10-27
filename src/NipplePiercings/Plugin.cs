@@ -19,9 +19,9 @@ namespace NipplePiercings
     [BepInPlugin(PluginGuid, PluginName, PluginVersion)]
     public sealed class Plugin : BasePlugin
     {
-        public const string PluginGuid = "com.local.nipplepiercings";
+        public const string PluginGuid = "FlanderDev.SFM.NipplePiercings";
         public const string PluginName = "NipplePiercings";
-        public const string PluginVersion = "0.2.2";
+        public const string PluginVersion = "1.0.0";
         internal const string ModelResource = "NipplePiercings.assets.piercings.npd";
         public const string None = "none";
 
