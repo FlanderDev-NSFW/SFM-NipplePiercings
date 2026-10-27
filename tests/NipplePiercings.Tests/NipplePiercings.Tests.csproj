@@ -9,9 +9,9 @@
     <RootNamespace>NipplePiercings.Tests</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="..\..\mods\NipplePiercings\Logic\**\*.cs" Link="Logic\%(RecursiveDir)%(Filename)%(Extension)" />
-    <Compile Include="..\..\src\SfmKit\Pure\**\*.cs" Link="SfmKit.Pure\%(RecursiveDir)%(Filename)%(Extension)" />
-    <None Include="..\..\mods\NipplePiercings\assets\piercings.npd" Link="piercings.npd" CopyToOutputDirectory="PreserveNewest"
-          Condition="Exists('..\..\mods\NipplePiercings\assets\piercings.npd')" />
+    <Compile Include="..\..\src\NipplePiercings\Logic\**\*.cs" Link="Logic\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\..\lib\SfmKit\Pure\**\*.cs" Link="SfmKit.Pure\%(RecursiveDir)%(Filename)%(Extension)" />
+    <None Include="..\..\src\NipplePiercings\assets\piercings.npd" Link="piercings.npd" CopyToOutputDirectory="PreserveNewest"
+          Condition="Exists('..\..\src\NipplePiercings\assets\piercings.npd')" />
   </ItemGroup>
 </Project>

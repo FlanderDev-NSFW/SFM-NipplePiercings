@@ -1,7 +1,8 @@
 # NipplePiercings
 
-> Developer notes: how it works, settings in detail, diagnostics and the test history. The player readme (shipped in the
-> release zip) is [`mods/NipplePiercings/README.md`](../../mods/NipplePiercings/README.md).
+> Developer notes (written in [sfm-modkit](https://github.com/FlanderDev-NSFW), where the mod is developed with
+> an in-game test bridge; paths like `./tools/dev.ps1` and `docs/knowledge/` refer to that kit): how it works, settings in detail, diagnostics and the test history. The player readme (shipped in the
+> release zip) is [`README.md`](../README.md).
 >
 > **1.0.0 (2026-10-27): first release** (F3M). Plugin GUID `FlanderDev.SFM.NipplePiercings` (was `com.local.nipplepiercings`), so the
 > config file is `BepInEx/config/FlanderDev.SFM.NipplePiercings.cfg`. The release zips no longer include RestraintHub (it is its own download).

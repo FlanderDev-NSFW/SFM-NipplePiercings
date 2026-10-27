@@ -39,3 +39,10 @@ Most changes apply right away while the game runs.
 - On very different body shapes or in extreme poses a piece can dip into the skin a little.
 
 Single-player / offline only. Code: MIT licence (`LICENSE.txt`). Models: "Assorted Piercings" by hellsquad2, CC BY-NC-ND 4.0 (smutba.se; details in `LICENSE-MODELS.txt`).
+
+## Building from source
+- .NET SDK 8, and a copy of the game with BepInEx 6 IL2CPP started once: copy `Directory.Build.local.props.example` to
+  `Directory.Build.local.props` and set `GameDir`. Then `dotnet build src/NipplePiercings/NipplePiercings.csproj -c Release`.
+- The source of the mod is `src/NipplePiercings` and its tests (`tests/`); `lib/SfmKit` is a copy of the shared [SfmKit](https://github.com/FlanderDev-NSFW/SfmKit)
+  library; `docs/` holds the developer notes.
+- Every push to `main` builds, tests and releases it (`.github/workflows/release.yml`, `build/ci.py`).
