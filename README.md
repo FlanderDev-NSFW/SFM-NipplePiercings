@@ -3,6 +3,8 @@
 Nipple piercings for **Secret Flasher Manaka**: studs, barbells, rings, hoops, a crystal and a heart pendant, and a chain
 between the nipples. Hanging pieces swing with her movements, rest on her body instead of going through it, and jingle.
 
+Models: ["Assorted Piercings"](https://smutba.se/project/88b66562-04d2-4dd5-9dcc-ab4607c4df8e/) by hellsquad2 ([CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/)).
+
 ## Requirements
 - Secret Flasher Manaka (tested with v1.1.3)
 - BepInEx 6 for IL2CPP (tested with build 738)
@@ -38,7 +40,7 @@ Most changes apply right away while the game runs.
 - The piercings are drawn over clothes (a top or the coat does not hide them).
 - On very different body shapes or in extreme poses a piece can dip into the skin a little.
 
-Single-player / offline only. Code: MIT licence (`LICENSE.txt`). Models: "Assorted Piercings" by hellsquad2, CC BY-NC-ND 4.0 (smutba.se; details in `LICENSE-MODELS.txt`).
+Single-player / offline only. Code: MIT licence (`LICENSE.txt`). Models: ["Assorted Piercings"](https://smutba.se/project/88b66562-04d2-4dd5-9dcc-ab4607c4df8e/) by hellsquad2, CC BY-NC-ND 4.0 (smutba.se; details in `LICENSE-MODELS.txt`).
 
 ## Building from source
 - .NET SDK 8, and a copy of the game with BepInEx 6 IL2CPP started once: copy `Directory.Build.local.props.example` to
