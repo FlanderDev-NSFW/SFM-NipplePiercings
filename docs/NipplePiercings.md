@@ -138,6 +138,16 @@ them) from front, right, left, back, top or below at the given distance (SfmKit 
   (`id >= parts.Length`) let the game's method run on a null slot. `Beyond` now also skips a null slot. In game (cycle +
   `load-save "29:5"`): 0 errors (before: 12 / 41); negative control without the mod: 0 errors, 0 loader warnings. Equipping
   from the menu was not re-checked (that path is `SetCosplayActive`, unchanged).
+- 1.0.1 (2026-11-02, user report): the items were missing from the costume menu's first page, "Equipped". That page and the
+  "Equipment slots" count read `GameStateData.PlayerCosplayPartsDict` (uniqueId -> equipped) themselves
+  (`InventoryPanelView.CalcEquipCount` filters its `KeyValuePair<int, bool>`s), not `IsEquipCosplayParts`, and the items were never
+  in it. `Closet.Sync` now writes each item's worn state (config) there: after an equip through the menu, on a change of
+  Left / Right / Chain, after `SetupCostumeFromGameState` (load) and before `ChangeSeries` / `CalcEquipCount`; the save prefix
+  already takes the entries out (Cosplay Loader's sanitizer keeps them: it checks `MCosplay.GetParts`). In game: Nipple Rings
+  equipped in General (Upper Body) -> listed on "Equipped", slots 4/30 -> 5/30; taken off from that page -> gone, 4/30 (negative
+  control); crystal + chain set in the config -> after a restart and load both listed, 6/30; 0 errors. Not checked: the game's
+  "take everything off" and anything else reading the table now see worn piercings like the game's own nipple piercing (expected
+  to take them off too); the game's own save with the entries (the strip code is unchanged).
 
 ## Known limits
 
@@ -149,5 +159,6 @@ them) from front, right, left, back, top or below at the given distance (SfmKit 
 - What she wears is in the config, the same for every save; "My Set" outfits do not include the piercings.
 - The breasts are spheres: on very differently shaped breasts or in extreme poses a piece can dip into the skin or hang a little
   off it (`BreastSize`).
+- "Equipped" lists an item only when both sides wear it (the config can set different piercings per side).
 - The items' ids in the costume series are the next free ones; a game update adding records to that series moves them (nothing
   is saved under them).

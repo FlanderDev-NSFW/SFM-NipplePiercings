@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using ExposureUnnoticed2.Master.Cosplay;
 using ExposureUnnoticed2.Object3D.Player.Scripts;
 using ExposureUnnoticed2.Object3D.Player.Scripts.Costume;
+using ExposureUnnoticed2.ObjectUI.InventoryPanel;
 using ExposureUnnoticed2.Scripts.Base;
 using ExposureUnnoticed2.Scripts.InGame;
 using HarmonyLib;
@@ -20,7 +21,8 @@ namespace NipplePiercings
     /// <see cref="RCosplayParts"/> with the game's nipple piercing's settings (a copy of its own record type would switch on the
     /// game's piercing). Their state never reaches the save: owned / equipped / equip are answered for these ids by the hooks
     /// below from the mod's config, and the game's own equip of a body object is skipped for them (the game has none) - a save
-    /// written with them loads without the mod. Ids are the next free ones in the series (33.. today); the mod keys its state by
+    /// written with them loads without the mod. The game's equipped table (<c>PlayerCosplayPartsDict</c>) mirrors the config
+    /// (<see cref="Sync"/>) because the inventory reads it directly: the "Equipped" page and the slot count. Ids are the next free ones in the series (33.. today); the mod keys its state by
     /// the piercing's name, so a game update adding records only moves them.
     /// </para>
     /// </summary>
@@ -70,6 +72,15 @@ namespace NipplePiercings
             // model for the record, and runs before this one (the same exception again, observed 2026-11-02).
             Prefix(AccessTools.Method(typeof(CosplayController), nameof(CosplayController.SetActiveParts)), nameof(SetActivePartsPrefix));
             Prefix(AccessTools.Method(typeof(CosplayController), nameof(CosplayController.IsActiveParts)), nameof(IsActivePartsPrefix));
+            // The inventory's "Equipped" page and its slot count read the equipped table itself, not IsEquipCosplayParts (the items
+            // were missing there, user report 2026-11-02): keep it in step with the config before the game reads it.
+            Prefix(AccessTools.Method(typeof(InventoryPanelCosplayView), nameof(InventoryPanelCosplayView.ChangeSeries)), nameof(SyncPrefix));
+            Prefix(AccessTools.Method(typeof(InventoryPanelView), nameof(InventoryPanelView.CalcEquipCount)), nameof(SyncPrefix));
+            harmony.Patch(AccessTools.Method(typeof(PlayerCosplayManager), nameof(PlayerCosplayManager.SetupCostumeFromGameState)),
+                          postfix: new HarmonyMethod(me, nameof(SyncPrefix)));
+            Plugin.Left.SettingChanged += (_, _) => Sync();
+            Plugin.Right.SettingChanged += (_, _) => Sync();
+            Plugin.Chain.SettingChanged += (_, _) => Sync();
             harmony.Patch(AccessTools.Method(typeof(SaveManager), nameof(SaveManager.Save)),
                           prefix: new HarmonyMethod(me, nameof(SavePrefix)), postfix: new HarmonyMethod(me, nameof(SavePostfix)));
             harmony.Patch(AccessTools.Method(typeof(Localizer), nameof(Localizer.Trans), new[] { typeof(string) }),
@@ -122,6 +133,21 @@ namespace NipplePiercings
 
         private static bool Ours(int uid, out string id) => _byUid.TryGetValue(uid, out id);
 
+        /// <summary>Write each item's worn state (from the config) into the game's equipped table, as the game keeps it for its own
+        /// records (uniqueId -> equipped). Taken out of the save like the other tables (<see cref="SavePrefix"/>).</summary>
+        public static void Sync()
+        {
+            try
+            {
+                var dict = GameState.GameStateData?.PlayerCosplayPartsDict;
+                if (dict == null) return;
+                foreach (var kv in _byUid) dict[kv.Key] = IsWorn(kv.Value);
+            }
+            catch (Exception e) { PiercingController.Fail("closet: equipped table", e); }
+        }
+
+        private static void SyncPrefix() => Sync();
+
         /// <summary>Whether a piercing (or the chain) is worn, by the config.</summary>
         public static bool IsWorn(string id) =>
             id == ChainItem ? Plugin.Chain.Value : Plugin.Left.Value == id && Plugin.Right.Value == id;
@@ -165,9 +191,10 @@ namespace NipplePiercings
                     if (Plugin.Left.Value == id) Plugin.Left.Value = Plugin.None;
                     if (Plugin.Right.Value == id) Plugin.Right.Value = Plugin.None;
                 }
+                Sync();
                 Plugin.Logger.LogInfo("[SFM-ACCEPT] closet: " + id + (isActive ? " equipped" : " taken off") + " (left " + Plugin.Left.Value +
                                       ", right " + Plugin.Right.Value + ", chain " + Plugin.Chain.Value + ")");
-                return false; // not into the save's equipped list
+                return false; // the game's own equip is skipped; the table is written by Sync (and kept out of the save)
             }
             catch (Exception e) { PiercingController.Fail("closet: equip", e); return true; }
         }
