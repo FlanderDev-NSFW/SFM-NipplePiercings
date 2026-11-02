@@ -66,6 +66,8 @@ namespace NipplePiercings
             Prefix(AccessTools.Method(typeof(PlayerCosplayManager), nameof(PlayerCosplayManager.SetCosplayActive)), nameof(SetCosplayActivePrefix));
             // The game also switches every record's body object on / off itself (loading, taking everything off): ids past the
             // slot's own objects are skipped (NullReferenceException in SetActiveParts for each of these items, observed 2026-10-25).
+            // So are empty slots: Cosplay Loader's own SetActiveParts prefix grows the array to the id with nulls when it has no
+            // model for the record, and runs before this one (the same exception again, observed 2026-11-02).
             Prefix(AccessTools.Method(typeof(CosplayController), nameof(CosplayController.SetActiveParts)), nameof(SetActivePartsPrefix));
             Prefix(AccessTools.Method(typeof(CosplayController), nameof(CosplayController.IsActiveParts)), nameof(IsActivePartsPrefix));
             harmony.Patch(AccessTools.Method(typeof(SaveManager), nameof(SaveManager.Save)),
@@ -190,7 +192,7 @@ namespace NipplePiercings
         private static bool Beyond(CosplayController controller, int id)
         {
             var parts = controller == null ? null : controller.parts;
-            return parts == null || id < 0 || id >= parts.Length;
+            return parts == null || id < 0 || id >= parts.Length || parts[id] == null;
         }
 
         private static bool SetActivePartsPrefix(CosplayController __instance, int id) => !Beyond(__instance, id);

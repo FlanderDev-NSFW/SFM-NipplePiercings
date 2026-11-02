@@ -131,7 +131,19 @@ them) from front, right, left, back, top or below at the given distance (SfmKit 
   wins with 4 cm, the tip wins now). In game: tips 18190 / 17849 (1.4 / 1.2 cm), unchanged for 10 s with her coat held open
   (hands in front of the chest); both crystals on the tips (screenshot).
 
+- 1.0.1 (2026-11-02): every start / load logged 12 `NullReferenceException at CosplayController.SetActiveParts` (Il2CppInterop
+  "native->managed trampoline"; 41 in a longer session). Cause: Cosplay Loader (`SFMCosplayLoaderMod.dll`, third-party) has its
+  own non-skipping prefix on `SetActiveParts` that grows `CosplayController.parts` to `id + 1` with null slots when it has no
+  glTF model for the record ("[SwapHook] Grew 'GenaralUpperBody'.parts 33 -> 34"), and it runs before ours - so `Beyond`
+  (`id >= parts.Length`) let the game's method run on a null slot. `Beyond` now also skips a null slot. In game (cycle +
+  `load-save "29:5"`): 0 errors (before: 12 / 41); negative control without the mod: 0 errors, 0 loader warnings. Equipping
+  from the menu was not re-checked (that path is `SetCosplayActive`, unchanged).
+
 ## Known limits
+
+- Cosplay Loader warns `[SwapHook] [Prefix] failed to find asset 'NipplePiercings.<item>'` (~470 lines per start/load): its
+  prefix looks for a model named after every record past the slot's objects, on each `SetActiveParts` of the series. Harmless
+  noise from that mod; ours to silence only by touching its array (which would hide its own items in this series), so left.
 
 - **Clothes are not taken into account:** under a top or the coat the piercings are drawn through the clothes.
 - What she wears is in the config, the same for every save; "My Set" outfits do not include the piercings.
