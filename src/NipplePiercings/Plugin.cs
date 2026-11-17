@@ -21,7 +21,7 @@ namespace NipplePiercings
     {
         public const string PluginGuid = "FlanderDev.SFM.NipplePiercings";
         public const string PluginName = "NipplePiercings";
-        public const string PluginVersion = "1.0.1";
+        public const string PluginVersion = "1.0.2";
         internal const string ModelResource = "NipplePiercings.assets.piercings.npd";
         public const string None = "none";
 

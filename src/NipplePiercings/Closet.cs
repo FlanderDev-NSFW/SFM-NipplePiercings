@@ -117,6 +117,10 @@ namespace NipplePiercings
                 item.ReleaseRank = 0;
                 item.CanChangeColor = false;
                 item.IsShowCustomizeButton = false;
+                // The game reads this of every equipped record when the costume changes (closing the closet, among others):
+                // left null, PlayerBodyCustomizeAdjuster.OnChangeCostumeCosplayEvent threw and the closet would not close, only
+                // saving again on each Escape (user report 2026-11-17).
+                item.ShrinkTypes = new Il2CppStructArray<ShrinkType>(0);
                 if (template != null) item.MinBreastSize = template.MinBreastSize;
                 grown[_firstId + i] = item;
                 _byUid[item.UniqueId] = ids[i];

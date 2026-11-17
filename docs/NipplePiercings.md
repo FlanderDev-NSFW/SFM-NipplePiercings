@@ -148,6 +148,13 @@ them) from front, right, left, back, top or below at the given distance (SfmKit 
   control); crystal + chain set in the config -> after a restart and load both listed, 6/30; 0 errors. Not checked: the game's
   "take everything off" and anything else reading the table now see worn piercings like the game's own nipple piercing (expected
   to take them off too); the game's own save with the entries (the strip code is unchanged).
+- 1.0.2 (2026-11-17, user report): with a piercing worn, Escape in the closet only showed "Saved" again and again and the
+  closet stayed open (the player had to quit the game). Closing runs `ClosetMenuView.OnClickBack`: it saves, then its callback
+  (`<OnClickBack>b__24_0`) raises `ChangeCostumeCosplayEvent`, and `PlayerBodyCustomizeAdjuster.OnChangeCostumeCosplayEvent`
+  threw a `NullReferenceException` (nothing in the log; calling the callback through the bridge showed it) because it reads
+  `ShrinkTypes` of each equipped record, null on ours (`CreateInstance`). Exposed by 1.0.1, which puts worn items into the
+  equipped table. The items now get an empty `ShrinkTypes`. In game: crystal worn -> closet, Escape -> "Saved" and the closet
+  closed, piercings still on; before the fix, same save and steps: stayed open; without a piercing worn it closed (negative control).
 
 ## Known limits
 
