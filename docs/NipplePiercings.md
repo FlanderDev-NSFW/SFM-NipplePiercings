@@ -155,6 +155,23 @@ them) from front, right, left, back, top or below at the given distance (SfmKit 
   `ShrinkTypes` of each equipped record, null on ours (`CreateInstance`). Exposed by 1.0.1, which puts worn items into the
   equipped table. The items now get an empty `ShrinkTypes`. In game: crystal worn -> closet, Escape -> "Saved" and the closet
   closed, piercings still on; before the fix, same save and steps: stayed open; without a piercing worn it closed (negative control).
+- 1.0.3 (2026-11-26, found by the FMF session): with a piercing worn and Cosplay Loader not installed, a loaded save put her **outside
+  the map** at (-10.44, -3.39, -23.44) and the game logged 171 NullReferenceExceptions in 120 frames
+  (`PlayerFacade.GetExposedBodyPartsByClothesAndCostume`, Custom Missions every frame). The game makes the enhancement entries of a
+  record (`CosplayPartsReinforceEffectDict`, `CosplayReinforceLockState`) only for a new game, and the save never holds the items'
+  (`SavePrefix`): after a load `RCosplayParts.EffectIds` threw KeyNotFoundException for the worn item and the stage start stopped
+  before she was placed. Cosplay Loader hid it: it makes entries for every record (with it they were there before ours ran).
+  `Closet.EnsureEntries` now adds the missing ones (the game's default, 3 ints; 4 bools) when the items are appended, after
+  `SaveManager.Load`, before `SetupCostumeFromGameState` and in `Sync`. Hooks on the load and the setup alone did **not** fix it: without
+  Cosplay Loader the game's costume list is there only after the first load (at the title the items were not added within 5 min), so
+  the items are appended after it. In game (slot 0; PaimonPiercings, FMF and Cosplay Loader not in `plugins/`; Left / Right = crystal):
+  - before (the deployed 2026-11-17 build): outside the map, 171 exceptions in 120 frames, no id 10033..10044 in any of the three tables.
+  - fixed: at the closet (0.22, 0.01, -1.83), "24 enhancement entries of the piercing items added", 0 exceptions, 10033..10044 in
+    both tables, 10034 (crystal) worn; crystals drawn (screenshot).
+  - saved by closing the closet ("36 entries ... kept out", the closet closed); that save without the mod: at the closet, 0 exceptions,
+    tables 207 / 207 / 190 / 170, no id past the game's.
+  - with Cosplay Loader: at the closet, 0 exceptions. A second load in the same session (two entries removed through the bridge first):
+    "2 enhancement entries ... added" before the stage, 0 exceptions. With PaimonPiercings worn as well: 0 exceptions.
 
 ## Known limits
 

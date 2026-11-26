@@ -76,8 +76,12 @@ namespace NipplePiercings
             // were missing there, user report 2026-11-02): keep it in step with the config before the game reads it.
             Prefix(AccessTools.Method(typeof(InventoryPanelCosplayView), nameof(InventoryPanelCosplayView.ChangeSeries)), nameof(SyncPrefix));
             Prefix(AccessTools.Method(typeof(InventoryPanelView), nameof(InventoryPanelView.CalcEquipCount)), nameof(SyncPrefix));
+            // A loaded slot has no enhancement entries for these items (the game makes them only for a new game, and the save
+            // never holds them): added when the items are appended (TryAdd), right after each load and before the stage's costume
+            // setup (EnsureEntries).
+            harmony.Patch(AccessTools.Method(typeof(SaveManager), nameof(SaveManager.Load)), postfix: new HarmonyMethod(me, nameof(EnsurePrefix)));
             harmony.Patch(AccessTools.Method(typeof(PlayerCosplayManager), nameof(PlayerCosplayManager.SetupCostumeFromGameState)),
-                          postfix: new HarmonyMethod(me, nameof(SyncPrefix)));
+                          prefix: new HarmonyMethod(me, nameof(EnsurePrefix)), postfix: new HarmonyMethod(me, nameof(SyncPrefix)));
             Plugin.Left.SettingChanged += (_, _) => Sync();
             Plugin.Right.SettingChanged += (_, _) => Sync();
             Plugin.Chain.SettingChanged += (_, _) => Sync();
@@ -132,6 +136,9 @@ namespace NipplePiercings
             record.PartsRecords = grown;
             Status = ids.Count + " items, ids " + _firstId + ".." + (_firstId + ids.Count - 1) + " (unique " + grown[_firstId].UniqueId + "..)";
             Plugin.Logger.LogInfo("[SFM-ACCEPT] closet: " + Status + (template == null ? "; the game's nipple piercing record was not found" : ""));
+            // Usually a slot is already loaded: without Cosplay Loader the game's costume list is there only after the first load
+            // (at the title the items were not added within 5 minutes; observed 2026-11-26), so the load hook came too early.
+            EnsurePrefix();
             return true;
         }
 
@@ -145,12 +152,60 @@ namespace NipplePiercings
             {
                 var dict = GameState.GameStateData?.PlayerCosplayPartsDict;
                 if (dict == null) return;
+                EnsureEntries();
                 foreach (var kv in _byUid) dict[kv.Key] = IsWorn(kv.Value);
             }
             catch (Exception e) { PiercingController.Fail("closet: equipped table", e); }
         }
 
         private static void SyncPrefix() => Sync();
+
+        /// <summary>
+        /// Every item has the enhancement entries the game keeps for each record (<c>CosplayPartsReinforceEffectDict</c>: the game's
+        /// default, 3 ints; <c>CosplayReinforceLockState</c>: 4 bools). The game makes them for every record only for a new game, not
+        /// when it loads a slot, and the save never holds them (<see cref="SavePrefix"/>): without them <c>RCosplayParts.EffectIds</c>
+        /// threw KeyNotFoundException for a worn item at the stage start, she stayed outside the map and the game's exposure check
+        /// threw every frame (without Cosplay Loader, which hid it; observed 2026-11-26). Run when the items are appended (usually after
+        /// the first load), after every load, before the stage's costume setup and whenever the items are written into the equipped
+        /// table (<see cref="Sync"/>). L3 2026-11-26: a save with the crystal worn loads at the closet with 0 exceptions (before: outside
+        /// the map, 171 per 120 frames).
+        /// </summary>
+        public static void EnsureEntries()
+        {
+            var data = GameState.GameStateData;
+            if (data == null || _byUid.Count == 0) return;
+            var effects = data.CosplayPartsReinforceEffectDict;
+            var locks = data.CosplayReinforceLockState;
+            Il2CppSystem.Collections.Generic.Dictionary<int, Il2CppStructArray<int>> defaults = null;
+            int lockLength = -1;
+            int added = 0;
+            foreach (int uid in _byUid.Keys)
+            {
+                if (effects != null && !effects.ContainsKey(uid))
+                {
+                    defaults ??= GameStateFacade.CreateDefaultReinforceEffectCosplayParts();
+                    effects[uid] = defaults != null && defaults.ContainsKey(uid) ? defaults[uid] : new Il2CppStructArray<int>(3);
+                    added++;
+                }
+                if (locks != null && !locks.ContainsKey(uid))
+                {
+                    if (lockLength < 0)
+                    {
+                        lockLength = 4; // the game's entries have 4 (observed); taken from one of them
+                        foreach (var kv in locks) { if (kv.Value != null) lockLength = kv.Value.Length; break; }
+                    }
+                    locks[uid] = new Il2CppStructArray<bool>(lockLength);
+                    added++;
+                }
+            }
+            if (added > 0) Plugin.Logger.LogInfo("[SFM-ACCEPT] closet: " + added + " enhancement entries of the piercing items added");
+        }
+
+        private static void EnsurePrefix()
+        {
+            try { EnsureEntries(); }
+            catch (Exception e) { PiercingController.Fail("closet: enhancement entries", e); }
+        }
 
         /// <summary>Whether a piercing (or the chain) is worn, by the config.</summary>
         public static bool IsWorn(string id) =>
@@ -236,9 +291,10 @@ namespace NipplePiercings
         }
 
         // --- the save never holds these items -------------------------------------------------------------------------------
-        // The game adds default entries for every record to its enhancement tables (CosplayPartsReinforceEffectDict,
-        // CosplayReinforceLockState: 207 -> 219 entries with the 12 items, observed 2026-10-25). They are taken out just before
-        // the game writes the save and put back after it, so a save written with the mod loads without it.
+        // The game keeps entries for every record in its enhancement tables (CosplayPartsReinforceEffectDict,
+        // CosplayReinforceLockState: 207 -> 219 entries with the 12 items, observed 2026-10-25) - made for a new game, and added
+        // for these items after a load by EnsureEntries. They are taken out just before the game writes the save and put back
+        // after it, so a save written with the mod loads without it.
 
         private static readonly List<(int, Il2CppStructArray<int>)> _effects = new List<(int, Il2CppStructArray<int>)>();
         private static readonly List<(int, Il2CppStructArray<bool>)> _locks = new List<(int, Il2CppStructArray<bool>)>();
