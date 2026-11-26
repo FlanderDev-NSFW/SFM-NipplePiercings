@@ -158,13 +158,19 @@ them) from front, right, left, back, top or below at the given distance (SfmKit 
 - 1.0.3 (2026-11-26, found by the FMF session): with a piercing worn and Cosplay Loader not installed, a loaded save put her **outside
   the map** at (-10.44, -3.39, -23.44) and the game logged 171 NullReferenceExceptions in 120 frames
   (`PlayerFacade.GetExposedBodyPartsByClothesAndCostume`, Custom Missions every frame). The game makes the enhancement entries of a
-  record (`CosplayPartsReinforceEffectDict`, `CosplayReinforceLockState`) only for a new game, and the save never holds the items'
-  (`SavePrefix`): after a load `RCosplayParts.EffectIds` threw KeyNotFoundException for the worn item and the stage start stopped
-  before she was placed. Cosplay Loader hid it: it makes entries for every record (with it they were there before ours ran).
-  `Closet.EnsureEntries` now adds the missing ones (the game's default, 3 ints; 4 bools) when the items are appended, after
-  `SaveManager.Load`, before `SetupCostumeFromGameState` and in `Sync`. Hooks on the load and the setup alone did **not** fix it: without
-  Cosplay Loader the game's costume list is there only after the first load (at the title the items were not added within 5 min), so
-  the items are appended after it. In game (slot 0; PaimonPiercings, FMF and Cosplay Loader not in `plugins/`; Left / Right = crystal):
+  record (`CosplayPartsReinforceEffectDict`, `CosplayReinforceLockState`) on a load (or a new game) only for the records it has then,
+  and the save never holds the items' (`SavePrefix`). The game's costume list (`MCosplay.dict`) is lazy: without Cosplay Loader it is
+  made only during the first load, so the items were appended after it and had no entries; `RCosplayParts.EffectIds` threw
+  KeyNotFoundException for the worn item and the stage start stopped before she was placed. Cosplay Loader hid it: its injection at the
+  title initialises the list there, so the items are appended before the load (the FMF session found that; its code writes no entries).
+  Fix, two parts:
+  - `Closet.InitializeAtTitle`: once the title menu is up and the list is still null, `MCosplay.CheckInitialize()` - so the items are
+    appended before any load and the game makes their entries itself. **Not with Cosplay Loader installed**: initialising first
+    appended the items *before* its outfits (observed, its injection came after), and its outfits keep their ids in the save.
+  - `Closet.EnsureEntries` as a safety net: adds missing entries (the game's default, 3 ints; 4 bools) when the items are appended,
+    after `SaveManager.Load`, before `SetupCostumeFromGameState` and in `Sync`. Hooks on the load and the setup alone did **not** fix it
+    (they ran before the items existed).
+  In game, first with the safety net only (slot 0; PaimonPiercings, FMF and Cosplay Loader not in `plugins/`; Left / Right = crystal):
   - before (the deployed 2026-11-17 build): outside the map, 171 exceptions in 120 frames, no id 10033..10044 in any of the three tables.
   - fixed: at the closet (0.22, 0.01, -1.83), "24 enhancement entries of the piercing items added", 0 exceptions, 10033..10044 in
     both tables, 10034 (crystal) worn; crystals drawn (screenshot).
@@ -172,6 +178,12 @@ them) from front, right, left, back, top or below at the given distance (SfmKit 
     tables 207 / 207 / 190 / 170, no id past the game's.
   - with Cosplay Loader: at the closet, 0 exceptions. A second load in the same session (two entries removed through the bridge first):
     "2 enhancement entries ... added" before the stage, 0 exceptions. With PaimonPiercings worn as well: 0 exceptions.
+  With the title initialisation (both piercing mods, both worn; launch -> title -> `load-save 0` or New Game into an empty slot):
+  - no Cosplay Loader: "costume list initialised at the title (21 series)", the items appended before the load; slot 0 at the closet,
+    0 exceptions, the game made all 13 records' entries itself (the safety net added none); new game: placed at home (0, 0, 0),
+    0 exceptions, entries for all 13.
+  - with Cosplay Loader: no initialisation by us, its "Injected 2 part(s)" before our items (the order before 1.0.3); slot 0 at the
+    closet and a new game, 0 exceptions each.
 
 ## Known limits
 

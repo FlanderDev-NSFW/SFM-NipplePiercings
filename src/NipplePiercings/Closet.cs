@@ -6,6 +6,7 @@ using ExposureUnnoticed2.Object3D.Player.Scripts.Costume;
 using ExposureUnnoticed2.ObjectUI.InventoryPanel;
 using ExposureUnnoticed2.Scripts.Base;
 using ExposureUnnoticed2.Scripts.InGame;
+using ExposureUnnoticed2.Scripts.UI;
 using HarmonyLib;
 using Il2CppInterop.Runtime.InteropTypes.Arrays;
 using UnityEngine;
@@ -76,9 +77,9 @@ namespace NipplePiercings
             // were missing there, user report 2026-11-02): keep it in step with the config before the game reads it.
             Prefix(AccessTools.Method(typeof(InventoryPanelCosplayView), nameof(InventoryPanelCosplayView.ChangeSeries)), nameof(SyncPrefix));
             Prefix(AccessTools.Method(typeof(InventoryPanelView), nameof(InventoryPanelView.CalcEquipCount)), nameof(SyncPrefix));
-            // A loaded slot has no enhancement entries for these items (the game makes them only for a new game, and the save
-            // never holds them): added when the items are appended (TryAdd), right after each load and before the stage's costume
-            // setup (EnsureEntries).
+            // The game gives a loaded slot (or a new game) enhancement entries only for the records it has at that moment, and the
+            // save never holds these items': if they were appended after the load, they have none. Added when the items are appended
+            // (TryAdd), right after each load and before the stage's costume setup (EnsureEntries).
             harmony.Patch(AccessTools.Method(typeof(SaveManager), nameof(SaveManager.Load)), postfix: new HarmonyMethod(me, nameof(EnsurePrefix)));
             harmony.Patch(AccessTools.Method(typeof(PlayerCosplayManager), nameof(PlayerCosplayManager.SetupCostumeFromGameState)),
                           prefix: new HarmonyMethod(me, nameof(EnsurePrefix)), postfix: new HarmonyMethod(me, nameof(SyncPrefix)));
@@ -95,7 +96,7 @@ namespace NipplePiercings
         public static bool TryAdd(IReadOnlyList<string> piercings)
         {
             if (_firstId >= 0) return true;
-            var series = MCosplay.dict;
+            var series = MCosplay.dict ?? InitializeAtTitle();
             if (series == null || !series.ContainsKey(Series)) return false;
             RCosplay record = series[Series];
             var parts = record.PartsRecords;
@@ -136,10 +137,35 @@ namespace NipplePiercings
             record.PartsRecords = grown;
             Status = ids.Count + " items, ids " + _firstId + ".." + (_firstId + ids.Count - 1) + " (unique " + grown[_firstId].UniqueId + "..)";
             Plugin.Logger.LogInfo("[SFM-ACCEPT] closet: " + Status + (template == null ? "; the game's nipple piercing record was not found" : ""));
-            // Usually a slot is already loaded: without Cosplay Loader the game's costume list is there only after the first load
-            // (at the title the items were not added within 5 minutes; observed 2026-11-26), so the load hook came too early.
+            // A slot may be loaded already (when the title was skipped or initialising the list there failed): its entries now.
             EnsurePrefix();
             return true;
+        }
+
+        private static bool _initTried;
+        private const string CosplayLoaderGuid = "com.TetoraFetora.SFMCosplayLoaderMod";
+
+        /// <summary>
+        /// The game's costume list (<c>MCosplay.dict</c>) is lazy: without Cosplay Loader it stayed null at the title (not within 5
+        /// minutes) and was made only during the first load, so the items came after it and the load gave them no entries. Initialised
+        /// once when the title menu is up, as Cosplay Loader's injection there does, the items are appended before any load and the
+        /// game makes their entries itself (FMF session E3 and here, 2026-11-26). Not with Cosplay Loader installed: it initialises the
+        /// list itself, and initialising it first appended these items before its outfits (observed) - its outfits keep their ids in
+        /// the save, so one in this series would get another id than its save has.
+        /// </summary>
+        private static Il2CppSystem.Collections.Generic.Dictionary<CosplayType, RCosplay> InitializeAtTitle()
+        {
+            if (_initTried || TitleSceneView.Instance == null) return null;
+            _initTried = true;
+            if (BepInEx.Unity.IL2CPP.IL2CPPChainloader.Instance.Plugins.ContainsKey(CosplayLoaderGuid)) return null;
+            try
+            {
+                MCosplay.CheckInitialize();
+                Plugin.Logger.LogInfo("[SFM-ACCEPT] closet: the game's costume list initialised at the title (" +
+                                      (MCosplay.dict == null ? "still empty" : MCosplay.dict.Count + " series") + ")");
+            }
+            catch (Exception e) { Plugin.Logger.LogWarning("closet: the game's costume list could not be initialised at the title, the items come after the load: " + e.Message); }
+            return MCosplay.dict;
         }
 
         private static bool Ours(int uid, out string id) => _byUid.TryGetValue(uid, out id);
@@ -162,13 +188,13 @@ namespace NipplePiercings
 
         /// <summary>
         /// Every item has the enhancement entries the game keeps for each record (<c>CosplayPartsReinforceEffectDict</c>: the game's
-        /// default, 3 ints; <c>CosplayReinforceLockState</c>: 4 bools). The game makes them for every record only for a new game, not
-        /// when it loads a slot, and the save never holds them (<see cref="SavePrefix"/>): without them <c>RCosplayParts.EffectIds</c>
-        /// threw KeyNotFoundException for a worn item at the stage start, she stayed outside the map and the game's exposure check
-        /// threw every frame (without Cosplay Loader, which hid it; observed 2026-11-26). Run when the items are appended (usually after
-        /// the first load), after every load, before the stage's costume setup and whenever the items are written into the equipped
-        /// table (<see cref="Sync"/>). L3 2026-11-26: a save with the crystal worn loads at the closet with 0 exceptions (before: outside
-        /// the map, 171 per 120 frames).
+        /// default, 3 ints; <c>CosplayReinforceLockState</c>: 4 bools). The game makes them on a load (or a new game) only for the records
+        /// it has then, and the save never holds them (<see cref="SavePrefix"/>): items appended after the load had none, and
+        /// <c>RCosplayParts.EffectIds</c> threw KeyNotFoundException for a worn item at the stage start - she stayed outside the map and
+        /// the game's exposure check threw every frame (without Cosplay Loader; observed 2026-11-26). A safety net beside
+        /// <see cref="InitializeAtTitle"/>: run when the items are appended, after every load, before the stage's costume setup and
+        /// whenever the items are written into the equipped table (<see cref="Sync"/>). L3 2026-11-26: a save with the crystal worn loads
+        /// at the closet with 0 exceptions (before: outside the map, 171 per 120 frames).
         /// </summary>
         public static void EnsureEntries()
         {
@@ -292,9 +318,9 @@ namespace NipplePiercings
 
         // --- the save never holds these items -------------------------------------------------------------------------------
         // The game keeps entries for every record in its enhancement tables (CosplayPartsReinforceEffectDict,
-        // CosplayReinforceLockState: 207 -> 219 entries with the 12 items, observed 2026-10-25) - made for a new game, and added
-        // for these items after a load by EnsureEntries. They are taken out just before the game writes the save and put back
-        // after it, so a save written with the mod loads without it.
+        // CosplayReinforceLockState: 207 -> 219 entries with the 12 items, observed 2026-10-25) - made by the game on a load for the
+        // records it has then, and by EnsureEntries for items that came later. They are taken out just before the game writes the
+        // save and put back after it, so a save written with the mod loads without it.
 
         private static readonly List<(int, Il2CppStructArray<int>)> _effects = new List<(int, Il2CppStructArray<int>)>();
         private static readonly List<(int, Il2CppStructArray<bool>)> _locks = new List<(int, Il2CppStructArray<bool>)>();
