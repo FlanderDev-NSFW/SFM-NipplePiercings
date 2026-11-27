@@ -4,6 +4,7 @@ using ExposureUnnoticed2.Master.Cosplay;
 using ExposureUnnoticed2.Object3D.Player.Scripts;
 using ExposureUnnoticed2.Object3D.Player.Scripts.Costume;
 using ExposureUnnoticed2.ObjectUI.InventoryPanel;
+using ExposureUnnoticed2.ObjectUI.PcMenuPanel.OnlineShopPanel;
 using ExposureUnnoticed2.Scripts.Base;
 using ExposureUnnoticed2.Scripts.InGame;
 using ExposureUnnoticed2.Scripts.UI;
@@ -179,7 +180,8 @@ namespace NipplePiercings
                 var dict = GameState.GameStateData?.PlayerCosplayPartsDict;
                 if (dict == null) return;
                 EnsureEntries();
-                foreach (var kv in _byUid) dict[kv.Key] = IsWorn(kv.Value);
+                bool hidden = Hidden;
+                foreach (var kv in _byUid) dict[kv.Key] = !hidden && IsWorn(kv.Value);
             }
             catch (Exception e) { PiercingController.Fail("closet: equipped table", e); }
         }
@@ -233,6 +235,28 @@ namespace NipplePiercings
             catch (Exception e) { PiercingController.Fail("closet: enhancement entries", e); }
         }
 
+        private static bool _shopHidden;
+
+        /// <summary>
+        /// The Online Shop took the items off for its previews: none is drawn until it closes, the config stays. The shop keeps a copy of
+        /// the series' equipped entries (<c>OnlineShopPanelView.playerCosplayPartsDictCache</c>), takes every item of the series off (on
+        /// opening and on each tab) and writes the copy back when it closes. Its take-off reached <see cref="SetActivePrefix"/> and
+        /// set <c>Left</c> / <c>Right</c> to none in the config, so a worn piercing was gone after the shop (1.0.3, observed 2026-11-26).
+        /// </summary>
+        public static bool Hidden
+        {
+            get
+            {
+                if (!_shopHidden) return false;
+                if (ShopOpen) return true;
+                _shopHidden = false; // the shop has closed: worn again by the config, also in the equipped table
+                Sync();
+                return false;
+            }
+        }
+
+        private static bool ShopOpen => OnlineShopPanelView.Instance != null;
+
         /// <summary>Whether a piercing (or the chain) is worn, by the config.</summary>
         public static bool IsWorn(string id) =>
             id == ChainItem ? Plugin.Chain.Value : Plugin.Left.Value == id && Plugin.Right.Value == id;
@@ -258,7 +282,7 @@ namespace NipplePiercings
             try
             {
                 if (!Ours(uniqueId, out string id)) return true;
-                __result = IsWorn(id);
+                __result = !Hidden && IsWorn(id);
                 return false;
             }
             catch (Exception e) { PiercingController.Fail("closet: equipped check", e); return true; }
@@ -269,6 +293,18 @@ namespace NipplePiercings
             try
             {
                 if (!Ours(uniqueId, out string id)) return true;
+                if (ShopOpen)
+                {
+                    // The shop's previews (Hidden): not the player's choice, so the config stays as it is.
+                    bool was = _shopHidden;
+                    _shopHidden = !isActive;
+                    Sync();
+                    if (was != _shopHidden) // the shop sends one per item: logged once
+                        Plugin.Logger.LogInfo("[SFM-ACCEPT] closet: " + (isActive ? "shown again" : "hidden") + " by the Online Shop (left " +
+                                              Plugin.Left.Value + ", right " + Plugin.Right.Value + ", chain " + Plugin.Chain.Value + ")");
+                    return false;
+                }
+                _shopHidden = false;
                 if (id == ChainItem) Plugin.Chain.Value = isActive;
                 else if (isActive) { Plugin.Left.Value = id; Plugin.Right.Value = id; }
                 else

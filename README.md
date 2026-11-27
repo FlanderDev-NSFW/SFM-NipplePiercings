@@ -1,4 +1,4 @@
-# NipplePiercings 1.0.0
+# NipplePiercings 1.0.4
 
 Nipple piercings for **Secret Flasher Manaka**: studs, barbells, rings, hoops, a crystal and a heart pendant, and a chain
 between the nipples. Hanging pieces swing with her movements, rest on her body instead of going through it, and jingle.

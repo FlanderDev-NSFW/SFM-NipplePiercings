@@ -232,7 +232,7 @@ namespace NipplePiercings
         [HideFromIl2Cpp]
         private bool Wear(Side s)
         {
-            string want = (s == _sides[0] ? Plugin.Left : Plugin.Right).Value;
+            string want = Closet.Hidden ? Plugin.None : (s == _sides[0] ? Plugin.Left : Plugin.Right).Value;
             if (want == s.Id) return s.Model != null;
             s.Rig?.Destroy();
             s.Rig = null;
@@ -370,7 +370,7 @@ namespace NipplePiercings
         private void PlaceChain(bool on, List<Collider> colliders, System.Text.StringBuilder sb)
         {
             Side l = _sides[0], r = _sides[1];
-            bool want = on && Plugin.Chain.Value && l.Model != null && r.Model != null && l.Rig != null && r.Rig != null
+            bool want = on && Plugin.Chain.Value && !Closet.Hidden && l.Model != null && r.Model != null && l.Rig != null && r.Rig != null
                         && l.Breast.gameObject.activeInHierarchy && r.Breast.gameObject.activeInHierarchy;
             var link = Set.Get("link");
             if (!want || link == null)

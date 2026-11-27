@@ -184,6 +184,17 @@ them) from front, right, left, back, top or below at the given distance (SfmKit 
     0 exceptions, entries for all 13.
   - with Cosplay Loader: no initialisation by us, its "Injected 2 part(s)" before our items (the order before 1.0.3); slot 0 at the
     closet and a new game, 0 exceptions each.
+- 1.0.4 (2026-11-27, found while fixing the same in PaimonPiercings): **opening the Online Shop took worn piercings off for good**.
+  - What the shop does: it keeps a copy of the series' equipped entries (`OnlineShopPanelView.playerCosplayPartsDictCache`) and
+    takes every item of the series off for its previews (on opening and on each tab). When it closes it writes the copy back.
+  - The bug: its take-off reached `Closet.SetActivePrefix`, which set `Left` / `Right` to none in the config.
+  - Fix: while `OnlineShopPanelView.Instance` exists, a take-off only hides the items (`Closet.Hidden`) and the config stays. After
+    the shop they are drawn again from the config.
+  - In game (Amateur save, studs and chain worn, PC -> Online Shop -> Costume tab -> close): open: none drawn ("L: off; R: off"),
+    equipped table false like the game's own 20011, config `stud` / `stud` / chain true; closed: studs drawn again, table true, config
+    unchanged.
+  - Control: 1.0.3 at the same steps turned the config to none / none. Outside the shop, `SetActiveCosplayParts(10034, false / true)`
+    still writes the config (none, then stud).
 
 ## Known limits
 
